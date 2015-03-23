@@ -33,7 +33,8 @@ void phase_correct_PWM_OCR0A() {
     // DDRB is the hardware register - a pointer to an 8 bit block of memory that will always be used for that purpose
     // Each bit of that 8 bit memory block controls whether the pin is an input or output
     // PinB is like DDRB except it actually stores the values of 8 digital pins
-    DDRD |= ( 1 << PD3 ); //set OC0 as output.
+    DDRD |= ( 1 << PD3 ); // set OC0 as output.
+    DDRE |= ( 1 << PE1 ); // set pin 10 (PE1) as digital output?
 
     // TCCR0A is a timer/counter control register, using pins 7 and 6, 
     // which are COM0A1 and COM0A0, we can set the mode of the phase correct
@@ -51,6 +52,8 @@ void setup_ADC1() {
     ADMUX |= _BV(REFS0);
     // Setting PD4 (ADC1) as an input
     DDRD = ~(_BV(PD4));
+    // Setting PE1 (button) as an input?
+    DDRE = ~(_BV(PE2));
 }
 
 uint16_t read_ADC(uint8_t channel) {
@@ -67,15 +70,34 @@ int main() {
     setup_ADC1();
     // OCR0A and OCR0B are 8 bit registers used to set duty cycle
     OCR0A = 0; // change this later, setting the duty cycle
+    // pin 11 button input (PE2)
+    // pin 10 LED output (PE1)
+    // read button input
+    uint8_t on = 0;
+    uint8_t button = 0;
+    uint8_t prev_button = 0;
+    uint16_t pot_reading = 0;
 
     while(1) {
-        // Uses ADC1 pin (pin 12, which is PD4)
-        uint16_t pot_reading = read_ADC(0x01);
+        button = PINE & _BV(PE2);
+        if (button && (button != prev_button)) {
+            // flip LED state
+            on ^= 0x01;
+            PORTE ^= (1 << PE1);
+
+        }
+        if (on) {
+            // Uses ADC1 pin (pin 12, which is PD4)
+            pot_reading = read_ADC(0x01);
+        } else {
+            pot_reading = 0x0;
+        }
         // Later prevent 0 to 10 and 90 to 100% PWM
         // Change 10 bit reading to 8 bit output
         OCR0A = (pot_reading >> 2);
         // Stabilize things
         _delay_ms(1);
+        prev_button = button;
     }
     return 0;
 }
