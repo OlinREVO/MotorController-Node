@@ -92,6 +92,9 @@ int main() {
         } else {
             pot_reading = 0x0;
         }
+        if (pot_reading > 0b1110111111) {
+            pot_reading = 0b1110111111;
+        }
         // Later prevent 0 to 10 and 90 to 100% PWM
         // Change 10 bit reading to 8 bit output
         OCR0A = (pot_reading >> 2);
